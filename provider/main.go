@@ -12,6 +12,7 @@ const (
 	authnPageHTML = `<html>
 <body>
 client_id: %s<br />
+%s<br />
 AuthN?<br />
 
 <form action="/authorize" method="POST">
@@ -20,11 +21,14 @@ AuthN?<br />
 <label for="passwd">Password: </label>
 <input name="passwd" type="password" placeholder="passwd">
 <input type="submit">
+
+<input type="hidden" name="client_id" value="%s">
 </form>
 </body>
 </html>`
 	authzPageHTML = `<html>
 <body>
+U R logged in.: %s<br />
 AuthZ?<br />
 <a href="/authorize/yes">yes</a><br />
 <a href="/authorize/no">no</a>
@@ -58,8 +62,9 @@ func exec() int {
 }
 
 func authnHandler(w http.ResponseWriter, r *http.Request) {
+	clientID := r.FormValue(`client_id`)
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(authnPageHTML, r.FormValue(`client_id`))))
+	w.Write([]byte(fmt.Sprintf(authnPageHTML, clientID, r.URL.Query().Get(`error`), clientID)))
 }
 
 func authzHandler(w http.ResponseWriter, r *http.Request) {
@@ -70,8 +75,21 @@ func authzHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(`Location`, `/authenticate?`+query.Encode())
 		w.WriteHeader(http.StatusFound)
 	case `POST`:
-		w.Write([]byte(authzPageHTML))
+		if authn(r.FormValue(`id`), r.FormValue(`passwd`)) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(fmt.Sprintf(authzPageHTML, r.FormValue(`client_id`))))
+			return
+		}
+		query := url.Values{}
+		query.Add(`error`, `cantLogin`)
+		query.Add(`client_id`, r.FormValue(`client_id`))
+		w.Header().Set(`Location`, `/authenticate?` + query.Encode())
+		w.WriteHeader(http.StatusFound)
 	}
+}
+
+func authn(userid, password string) bool {
+	return userid == `userid` && password == `passwd`
 }
 
 func authzYesHandler(w http.ResponseWriter, r *http.Request) {
