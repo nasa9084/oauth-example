@@ -13,8 +13,8 @@ import (
 const (
 	cbHTML = `<html>
 <body>
-%s
-%s
+%s<br />
+get Token: %s
 </body>
 </html>
 `
@@ -52,6 +52,7 @@ func authzHandler(w http.ResponseWriter, r *http.Request) {
 	query := url.Values{}
 	query.Add(`response_type`, `code`)
 	query.Add(`client_id`, `client application`)
+	query.Add(`redirect_uri`, `http://localhost:8000/callback`)
 	w.Header().Set(`Location`, `http://localhost:8080/authorize?` + query.Encode())
 	w.WriteHeader(http.StatusFound)
 }

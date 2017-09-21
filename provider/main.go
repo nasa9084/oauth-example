@@ -23,6 +23,7 @@ AuthN?<br />
 <input type="submit">
 
 <input type="hidden" name="client_id" value="%s">
+<input type="hidden" name="redirect_uri" value="%s">
 </form>
 </body>
 </html>`
@@ -30,8 +31,8 @@ AuthN?<br />
 <body>
 U R logged in.: %s<br />
 AuthZ?<br />
-<a href="/authorize/yes">yes</a><br />
-<a href="/authorize/no">no</a>
+<a href="/authorize/yes?%s">yes</a><br />
+<a href="/authorize/no?%s">no</a>
 </body>
 </html>`
 	tokenJSON = `{
@@ -64,7 +65,7 @@ func exec() int {
 func authnHandler(w http.ResponseWriter, r *http.Request) {
 	clientID := r.FormValue(`client_id`)
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(authnPageHTML, clientID, r.URL.Query().Get(`error`), clientID)))
+	w.Write([]byte(fmt.Sprintf(authnPageHTML, clientID, r.URL.Query().Get(`error`), clientID, r.URL.Query().Get(`redirect_uri`))))
 }
 
 func authzHandler(w http.ResponseWriter, r *http.Request) {
@@ -72,18 +73,23 @@ func authzHandler(w http.ResponseWriter, r *http.Request) {
 	case `GET`:
 		query := url.Values{}
 		query.Add(`client_id`, r.FormValue(`client_id`))
+		query.Add(`redirect_uri`, r.FormValue(`redirect_uri`))
 		w.Header().Set(`Location`, `/authenticate?`+query.Encode())
 		w.WriteHeader(http.StatusFound)
 	case `POST`:
 		if authn(r.FormValue(`id`), r.FormValue(`passwd`)) {
+			query := url.Values{}
+			query.Add(`client_id`, r.FormValue(`client_id`))
+			query.Add(`redirect_uri`, r.FormValue(`redirect_uri`))
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(fmt.Sprintf(authzPageHTML, r.FormValue(`client_id`))))
+			w.Write([]byte(fmt.Sprintf(authzPageHTML, r.FormValue(`client_id`), query.Encode(), query.Encode())))
 			return
 		}
 		query := url.Values{}
 		query.Add(`error`, `cantLogin`)
 		query.Add(`client_id`, r.FormValue(`client_id`))
-		w.Header().Set(`Location`, `/authenticate?` + query.Encode())
+		query.Add(`redirect_uri`, r.FormValue(`redirect_uri`))
+		w.Header().Set(`Location`, `/authenticate?`+query.Encode())
 		w.WriteHeader(http.StatusFound)
 	}
 }
@@ -95,14 +101,14 @@ func authn(userid, password string) bool {
 func authzYesHandler(w http.ResponseWriter, r *http.Request) {
 	query := url.Values{}
 	query.Add(`code`, `authorizedyes`)
-	w.Header().Set(`Location`, `http://localhost:8000/callback?`+query.Encode())
+	w.Header().Set(`Location`, r.FormValue(`redirect_uri`)+`?`+query.Encode())
 	w.WriteHeader(http.StatusFound)
 }
 
 func authzNoHandler(w http.ResponseWriter, r *http.Request) {
 	query := url.Values{}
 	query.Add(`error`, `access_denied`)
-	w.Header().Set(`Location`, `http://localhost:8000/callback?`+query.Encode())
+	w.Header().Set(`Location`, r.FormValue(`redirect_uri`)+`?`+query.Encode())
 	w.WriteHeader(http.StatusFound)
 }
 
