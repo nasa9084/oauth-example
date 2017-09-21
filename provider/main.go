@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -64,7 +65,9 @@ func authnHandler(w http.ResponseWriter, r *http.Request) {
 func authzHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case `GET`:
-		w.Header().Set(`Location`, `/authenticate?client_id=` + r.FormValue(`client_id`))
+		query := url.Values{}
+		query.Add(`client_id`, r.FormValue(`client_id`))
+		w.Header().Set(`Location`, `/authenticate?`+query.Encode())
 		w.WriteHeader(http.StatusFound)
 	case `POST`:
 		w.Write([]byte(authzPageHTML))
@@ -72,12 +75,16 @@ func authzHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func authzYesHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set(`Location`, `http://localhost:8000/callback?code=authorizedyes`)
+	query := url.Values{}
+	query.Add(`code`, `authorizedyes`)
+	w.Header().Set(`Location`, `http://localhost:8000/callback?`+query.Encode())
 	w.WriteHeader(http.StatusFound)
 }
 
 func authzNoHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set(`Location`, `http://localhost:8000/callback?error=access_denied`)
+	query := url.Values{}
+	query.Add(`error`, `access_denied`)
+	w.Header().Set(`Location`, `http://localhost:8000/callback?`+query.Encode())
 	w.WriteHeader(http.StatusFound)
 }
 

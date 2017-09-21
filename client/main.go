@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -17,6 +18,11 @@ const (
 </body>
 </html>
 `
+	indexHTML = `<html>
+<body>
+<a href="/authz">Start AuthZ</button>
+</body>
+</html>`
 )
 
 func main() { os.Exit(exec()) }
@@ -39,17 +45,14 @@ func exec() int {
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`
-<html>
-<body>
-<a href="/authz">Start AuthZ</button>
-</body>
-</html>
-	`))
+	w.Write([]byte(indexHTML))
 }
 
 func authzHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set(`Location`, `http://localhost:8080/authorize?response_type=code&client_id=client%20application`)
+	query := url.Values{}
+	query.Add(`response_type`, `code`)
+	query.Add(`client_id`, `client application`)
+	w.Header().Set(`Location`, `http://localhost:8080/authorize?` + query.Encode())
 	w.WriteHeader(http.StatusFound)
 }
 
