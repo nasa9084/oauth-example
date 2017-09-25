@@ -5,8 +5,8 @@ OAuth 2.0 Authorization Code Flow example
 
 **IMPORTANT: THIS IS AN EXAMPLE. DO NOT USE IN PRODUCTION**
 
-* terminal 1: go run provider/main.go
-* terminal 2: go run client/main.go
+* terminal 1: `$ go run provider/main.go`
+* terminal 2: `$ go run client/main.go`
 
 and
 
