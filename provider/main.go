@@ -62,22 +62,31 @@ func exec() int {
 	return 0
 }
 
+// Authentication Endpoint
+// This process is out of OAuth 2.0
+// shows auth form
 func authnHandler(w http.ResponseWriter, r *http.Request) {
 	clientID := r.FormValue(`client_id`)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(authnPageHTML, clientID, r.URL.Query().Get(`error`), clientID, r.URL.Query().Get(`redirect_uri`))))
 }
 
+// Authorization Endpoint
 func authzHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case `GET`:
+	case `GET`: // GET method means the request is first Authorization request
+		// redirect to authentication endpoint
+		// this is out of OAuth 2.0
 		query := url.Values{}
 		query.Add(`client_id`, r.FormValue(`client_id`))
 		query.Add(`redirect_uri`, r.FormValue(`redirect_uri`))
 		w.Header().Set(`Location`, `/authenticate?`+query.Encode())
 		w.WriteHeader(http.StatusFound)
-	case `POST`:
+	case `POST`: // POST method means the requrest is authenticate request
+		// dummy authenticate process
 		if authn(r.FormValue(`id`), r.FormValue(`passwd`)) {
+			// shows Authorization form
+			// resource owner chooses authoriza or not
 			query := url.Values{}
 			query.Add(`client_id`, r.FormValue(`client_id`))
 			query.Add(`redirect_uri`, r.FormValue(`redirect_uri`))
@@ -85,6 +94,7 @@ func authzHandler(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(fmt.Sprintf(authzPageHTML, r.FormValue(`client_id`), query.Encode(), query.Encode())))
 			return
 		}
+		// if authentication is failed, re-redirect to authentication form
 		query := url.Values{}
 		query.Add(`error`, `cantLogin`)
 		query.Add(`client_id`, r.FormValue(`client_id`))
@@ -94,25 +104,33 @@ func authzHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// dummy authentication
 func authn(userid, password string) bool {
 	return userid == `userid` && password == `passwd`
 }
 
 func authzYesHandler(w http.ResponseWriter, r *http.Request) {
+	// OAuth 2.0 4.1.2
+	// Successful Authorization Response
 	query := url.Values{}
-	query.Add(`code`, `authorizedyes`)
+	// in production, this code must be invalidated in short time after(max 10 minutes is recommended)
+	query.Add(`code`, `authorizedyes`) // Authorization code
 	w.Header().Set(`Location`, r.FormValue(`redirect_uri`)+`?`+query.Encode())
-	w.WriteHeader(http.StatusFound)
+	w.WriteHeader(http.StatusFound) // callback redirect
 }
 
 func authzNoHandler(w http.ResponseWriter, r *http.Request) {
+	// OAuth 2.0 4.1.3.1
+	// Error Response
 	query := url.Values{}
-	query.Add(`error`, `access_denied`)
+	query.Add(`error`, `access_denied`) // Error code
 	w.Header().Set(`Location`, r.FormValue(`redirect_uri`)+`?`+query.Encode())
-	w.WriteHeader(http.StatusFound)
+	w.WriteHeader(http.StatusFound) // callback redirect
 }
 
+// Token Endpoint
 func tokenHandler(w http.ResponseWriter, r *http.Request) {
+	// in production, validate authorization code
 	w.Header().Set(`Content-Type`, `applicaiton/json`)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(tokenJSON))

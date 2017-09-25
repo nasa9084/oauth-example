@@ -27,6 +27,7 @@ get Token: %s
 
 func main() { os.Exit(exec()) }
 
+// main logic
 func exec() int {
 	// binding handlers
 	http.HandleFunc(`/`, indexHandler)
@@ -43,29 +44,37 @@ func exec() int {
 	return 0
 }
 
+// top page
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(indexHTML))
 }
 
 func authzHandler(w http.ResponseWriter, r *http.Request) {
+	// Authorization Request
+	// OAuth 2.0 4.1.1, Appendix B
 	query := url.Values{}
-	query.Add(`response_type`, `code`)
-	query.Add(`client_id`, `client application`)
-	query.Add(`redirect_uri`, `http://localhost:8000/callback`)
+	query.Add(`response_type`, `code`) // REQUIRED, must be `code`
+	query.Add(`client_id`, `client application`) // REQUIRED
+	query.Add(`redirect_uri`, `http://localhost:8000/callback`) // OPTIONAL
+	// in production, use TLS
 	w.Header().Set(`Location`, `http://localhost:8080/authorize?` + query.Encode())
 	w.WriteHeader(http.StatusFound)
 }
 
+// callback endpoint
 func cbHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	var body string
 	var token string
+	// Validate authorization code
 	code := r.FormValue(`code`)
 	if code == "" {
 		err := r.FormValue(`error`)
 		body = fmt.Sprintf(`Error: %s`, err)
 	} else {
+		// OAuth 2.0 4.1.3
+		// access token request
 		body = fmt.Sprintf(`Code: %s`, code)
 		buf := bytes.Buffer{}
 		buf.WriteString(`grant_type=authorization_code&code=`)
