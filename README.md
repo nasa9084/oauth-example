@@ -9,3 +9,7 @@ oauth_example
 and
 
 * access to http://localhost:8000 with your browser
+
+## References
+
+* https://tools.ietf.org/html/rfc6749
